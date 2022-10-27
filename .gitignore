@@ -1,0 +1,39 @@
+# Project exclude paths
+/doc/
+/bin/
+/.settings/
+/.project
+/.classpath
+/dist
+
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+logs/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+*.pem
+app.jar
+
+.DS_Store
