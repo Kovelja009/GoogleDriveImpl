@@ -257,13 +257,23 @@ public class Main {
     /////////////
 
     static void ispis(File f){
-        System.out.println("Name: " + f.getName() + "   Id: " + f.getId() + "   Parents: " + f.getParents() + " Type: " + f.getMimeType() + "   CreatedTime: " + f.getCreatedTime());
+        System.out.println("Name: " + f.getName() + "   Id: " + f.getId() + "   Parents: " + f.getParents() + " Type: " + f.getMimeType() + "   CreatedTime: " + f.getCreatedTime() + "Size: " + f.getSize());
     }
 
     public static void main(String[] args) {
         try {
             GoogleDriveImpl gdg = new GoogleDriveImpl();
-            System.out.println(gdg.createRoot("", "ROot", new Configuration()));
+//            Configuration configuration = new Configuration();
+//            configuration.setFile_n(2);
+//            System.out.println(gdg.createRoot("", "Root2", configuration));
+//            gdg.mkdir("Proba", 2);
+            for(File f : gdg.getService().files().list()
+                    .setFields("files(name, id, parents, mimeType, createdTime, size)")
+                    .execute().getFiles())
+                ispis(f);
+
+
+
 
             //TODO sacuvaj liniju !!!
 //            System.out.println(service.files().get("root").execute().getId());
