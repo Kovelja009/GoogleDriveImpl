@@ -263,14 +263,27 @@ public class Main {
     public static void main(String[] args) {
         try {
             GoogleDriveImpl gdg = new GoogleDriveImpl();
-//            Configuration configuration = new Configuration();
-//            configuration.setFile_n(2);
-//            System.out.println(gdg.createRoot("", "Root2", configuration));
-//            gdg.mkdir("Proba", 2);
-            for(File f : gdg.getService().files().list()
-                    .setFields("files(name, id, parents, mimeType, createdTime, size)")
-                    .execute().getFiles())
-                ispis(f);
+            Configuration configuration = new Configuration();
+            configuration.setFile_n(3);
+            configuration.setSize(76949);
+            configuration.getExcludedExt().add("jpeg");
+            System.out.println(gdg.createRoot("", "Root5", configuration));
+            gdg.mkdir("Folder1");
+            gdg.upload("src/main/resources/photo.png","");
+            gdg.upload("src/main/resources/photo2.jpg","Folder1");
+
+
+
+
+
+
+
+
+
+//            for(File f : gdg.getService().files().list()
+//                    .setFields("files(name, id, parents, mimeType, createdTime, size)")
+//                    .execute().getFiles())
+//                ispis(f);
 
 
 

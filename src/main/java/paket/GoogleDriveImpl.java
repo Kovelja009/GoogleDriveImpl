@@ -59,17 +59,14 @@ public class GoogleDriveImpl extends FileManager{
 
         setRootPath(rootPath);
         setConfiguration(configuration);
-        System.out.println("Usao");
         saveConfig(rootPath);
-        System.out.println("Izasao");
         return true;
     }
 
     @Override
-    protected boolean checkConfig(String parentPath, String ext, long size, int n_number) {
-        File parent = getFolderbyPath(parentPath);
+    protected boolean checkConfig(String parentID, String ext, long size, int n_number) {
         try {
-            String query = "'" + parent.getId() + "' in parents";
+            String query = "'" + parentID + "' in parents";
             List<File> children = service.files().list().setQ(query).setSpaces("drive")
                     .setFields("files(id, name, size)")
                     .execute().getFiles();
@@ -110,7 +107,7 @@ public class GoogleDriveImpl extends FileManager{
                 System.out.println("Name: " + name + " is not valid!");
                 return false;
             }
-            if(!checkConfig(path, "", 0,1)){
+            if(!checkConfig(par.getId(), "", 0,1)){
                 System.out.println("Please check config before trying to make: " + name);
                 return false;
             }
@@ -128,7 +125,6 @@ public class GoogleDriveImpl extends FileManager{
                     .setFields("id, name, parents, mimeType, createdTime, size")
                     .execute();
             std_out(file);
-            System.out.println("-----------------");
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -175,8 +171,37 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean upload(String s, String s1) {
-        return false;
+    public boolean upload(String item, String destination) {
+        try {
+            java.io.File javaFile = new java.io.File(item);
+            if(destination.equals(""))
+                destination = getRootPath();
+            else
+                destination = getRootPath()+"/"+destination;
+            if(!isValidPath(destination))
+                return false;
+
+            File parent = getFolderbyPath(destination);
+
+            String ext = getExtension(javaFile.getName());
+            String type = map.get(ext);
+            if(!isNameValid(parent.getId(), javaFile.getName(), type)){
+                System.out.println("Name is not valid!");
+                return false;
+            }
+
+            if(!checkConfig(parent.getId(), ext, Files.size(Paths.get(javaFile.getPath())),1)){
+                System.out.println("Please check config!File tried to upload: " + javaFile.getPath());
+                return false;
+            }
+
+            uploadFile(parent.getId(), javaFile);
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -246,15 +271,21 @@ public class GoogleDriveImpl extends FileManager{
 
     static void std_out(File f){
         System.out.println("Name: " + f.getName() + "   Id: " + f.getId() + "   Parents: " + f.getParents() + " Type: " + f.getMimeType() + "   CreatedTime: " + f.getCreatedTime() + " Size: " + f.getSize());
+        System.out.println("-----------------");
+
     }
 
     boolean isValidPath(String path){
-        if (path == null || path.equals("") || path.toLowerCase().equals("root"))
+        if (path == null || path.equals(""))
             return true;
         try {
             String[] folders = path.split("/");
             String previous = null;
             for(int i = 0; i < folders.length; i++){
+                if(i == folders.length-1 && folders[i] == "")
+                    return true;
+                if(folders[i].equals(""))
+                    return false;
                 previous = getGoogleSubFolderByName(previous, folders[i]).get(0).getId();
             }
             return true;
@@ -342,16 +373,16 @@ public class GoogleDriveImpl extends FileManager{
         }
     }
 
-    public File uploadFile(String parentID, java.io.File file){
+    private File uploadFile(String parentID, java.io.File file){
         File driveFile = null;
         try {
             File fileMetadata = new File();
             fileMetadata.setName(file.getName());
             fileMetadata.setParents(List.of(parentID));
 
-            FileContent fileContent = new FileContent(map.get(file.getName().substring(file.getName().lastIndexOf("."))), file);
+            FileContent fileContent = new FileContent(map.get(getExtension(file.getName())), file);
             driveFile = service.files().create(fileMetadata, fileContent)
-                    .setFields("id, name, parents, mimeType, createdTime")
+                    .setFields("id, name, parents, mimeType, createdTime, size")
                     .execute();
             std_out(driveFile);
         }catch (Exception e){
@@ -385,6 +416,19 @@ public class GoogleDriveImpl extends FileManager{
             System.out.println("-----------------");
             return file;
         } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private String getExtension(String name){
+        return name.substring(name.lastIndexOf(".") + 1);
+    }
+
+    private File getFolderbyID(String id){
+        try {
+        return service.files().get(id).execute();
+        }catch (Exception e){
             e.printStackTrace();
             return null;
         }
