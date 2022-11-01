@@ -96,10 +96,9 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-//    TODO dodati proveru checkConfig
     public boolean mkdir(String path, String name) {
         String realFolderId = null;
-        path = getRootPath() + "/" + path;
+        path = getFullPath(path);
         if(isValidPath(path)){
             File par =  getFolderbyPath(path);
             realFolderId = par.getId();
@@ -156,8 +155,20 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean delete(String s) {
-        return false;
+    public boolean delete(String path) {
+        path = getFullPath(path);
+        if(!isValidPath(path)){
+            System.out.println("Invalid path: " + path);
+            return false;
+        }
+        try {
+            File file = getFolderbyPath(path);
+            service.files().delete(file.getId()).execute();
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -174,10 +185,7 @@ public class GoogleDriveImpl extends FileManager{
     public boolean upload(String item, String destination) {
         try {
             java.io.File javaFile = new java.io.File(item);
-            if(destination.equals(""))
-                destination = getRootPath();
-            else
-                destination = getRootPath()+"/"+destination;
+            destination = getFullPath(destination);
             if(!isValidPath(destination))
                 return false;
 
@@ -210,6 +218,8 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
+//    TODO obrisati iz repo-a ako postoji i onda upload novu
+//    TODO dodati na zatvaranju
     public void saveConfig(String path) {
         try(FileWriter writer = new FileWriter("src/main/resources/config.json")) {
             Gson gson = new Gson();
@@ -431,6 +441,19 @@ public class GoogleDriveImpl extends FileManager{
         }catch (Exception e){
             e.printStackTrace();
             return null;
+        }
+    }
+
+    private String getFullPath(String path){
+        if(path.equals(""))
+            return getRootPath();
+        else{
+            String pth = getRootPath()+"/"+path;
+            if(pth.charAt(pth.length()-1) == '/')
+                pth = pth.substring(0, pth.length()-1);
+            if(pth.charAt(0) == '/')
+                pth = pth.substring(1);
+            return pth;
         }
     }
 }

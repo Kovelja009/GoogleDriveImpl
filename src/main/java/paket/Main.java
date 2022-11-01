@@ -265,12 +265,13 @@ public class Main {
             GoogleDriveImpl gdg = new GoogleDriveImpl();
             Configuration configuration = new Configuration();
             configuration.setFile_n(3);
-            configuration.setSize(76949);
-            configuration.getExcludedExt().add("jpeg");
+//            configuration.setSize(76949);
+//            configuration.getExcludedExt().add("jpeg");
             System.out.println(gdg.createRoot("", "Root5", configuration));
             gdg.mkdir("Folder1");
             gdg.upload("src/main/resources/photo.png","");
             gdg.upload("src/main/resources/photo2.jpg","Folder1");
+            gdg.delete("Folder1");
 
 
 
