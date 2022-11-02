@@ -13,8 +13,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Stream;
 
 //TODO postaviti kao GitHubPackage
 //TODO postaviti scope runtime
@@ -64,7 +65,7 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    protected boolean checkConfig(String parentID, String ext, long size, int n_number) {
+    protected boolean checkConfig(String parentID, String ext, long size) {
         try {
             String query = "'" + parentID + "' in parents";
             List<File> children = service.files().list().setQ(query).setSpaces("drive")
@@ -76,7 +77,7 @@ public class GoogleDriveImpl extends FileManager{
                 if(file.getSize() != null)
                     sum+= file.getSize();
             }
-            if(n_number + children.size() > getConfiguration().getFile_n()){
+            if(1 + children.size() > getConfiguration().getFile_n()){
                 System.out.println("Max number of files in a folder is: " + getConfiguration().getFile_n());
                 return false;
             }
@@ -106,7 +107,7 @@ public class GoogleDriveImpl extends FileManager{
                 System.out.println("Name: " + name + " is not valid!");
                 return false;
             }
-            if(!checkConfig(par.getId(), "", 0,1)){
+            if(!checkConfig(par.getId(), "", 0)){
                 System.out.println("Please check config before trying to make: " + name);
                 return false;
             }
@@ -129,29 +130,6 @@ public class GoogleDriveImpl extends FileManager{
             e.printStackTrace();
             return false;
         }
-    }
-
-    @Override
-    public boolean mkdir(String path, List<String> names) {
-        boolean ans = true;
-        for(String name : names){
-            if(!mkdir(path, name))
-                ans = false;
-
-        }
-        return ans;
-    }
-
-    @Override
-    public boolean mkdir(String path, String name, int n) {
-
-        boolean ans = true;
-        for(int i = 0; i < n; i++){
-            String tmp = name + "_"  + (i + 1);
-            if(!mkdir(path, tmp))
-                ans = false;
-        }
-        return ans;
     }
 
     @Override
@@ -198,7 +176,7 @@ public class GoogleDriveImpl extends FileManager{
                 return false;
             }
 
-            if(!checkConfig(parent.getId(), ext, Files.size(Paths.get(javaFile.getPath())),1)){
+            if(!checkConfig(parent.getId(), ext, Files.size(Paths.get(javaFile.getPath())))){
                 System.out.println("Please check config!File tried to upload: " + javaFile.getPath());
                 return false;
             }
@@ -275,7 +253,7 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public List<MyFile> filterByPeriod(String s, Date date, Date date1, boolean b) {
+    public List<MyFile> filterByPeriod(String s, LocalDateTime date, LocalDateTime date1, boolean b) {
         return null;
     }
 
