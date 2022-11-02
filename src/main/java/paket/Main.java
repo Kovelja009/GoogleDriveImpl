@@ -267,12 +267,9 @@ public class Main {
 //            configuration.setFile_n(3);
 //            configuration.setSize(76949);
 //            configuration.getExcludedExt().add("jpeg");
-            System.out.println(gdg.createRoot("", "Root11", configuration));
-            gdg.mkdir("Folder1");
-            gdg.mkdir("Folder2");
-            gdg.upload("src/main/resources/photo.png","Folder1");
-            gdg.move("Folder1", "Folder2");
-//            gdg.upload("src/main/resources/photo2.jpg","Folder1");
+            System.out.println(gdg.createRoot("", "Root14", configuration));
+            gdg.upload("src/main/resources/photo2.jpg","");
+            gdg.download("photo2.jpg","C:\\Users\\Vanja\\Downloads");
 //            gdg.delete("Folder1");
 
 

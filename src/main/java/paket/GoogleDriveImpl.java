@@ -8,9 +8,7 @@ import com.google.api.services.drive.model.FileList;
 import com.google.gson.Gson;
 import lombok.Getter;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -185,8 +183,17 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean download(String s, String s1) {
-        return false;
+    public boolean download(String item, String destination) {
+        item = getFullPath(item);
+        if(!isValidPath(item))
+            return false;
+        File file = getFolderbyPath(item);
+        destination = destination + "/" + item.substring(item.lastIndexOf("/")+1);
+        downloadFile(file.getId(), destination);
+
+
+
+        return true;
     }
 
     @Override
@@ -440,11 +447,23 @@ public class GoogleDriveImpl extends FileManager{
         }
     }
 
+
+    private void downloadFile(String fileID, String OSpath){
+        try {
+            FileOutputStream os = new FileOutputStream(OSpath);
+            service.files().get(fileID)
+                    .executeMediaAndDownloadTo(os);
+            os.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private String getExtension(String name){
         return name.substring(name.lastIndexOf(".") + 1);
     }
 
-    private File getFolderbyID(String id){
+    private File getFolderByID(String id){
         try {
         return service.files().get(id).execute();
         }catch (Exception e){
