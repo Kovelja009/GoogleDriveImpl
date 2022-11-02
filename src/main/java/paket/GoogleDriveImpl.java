@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -150,8 +149,39 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean move(String s, String s1) {
-        return false;
+    public boolean move(String oldPath, String newPath) {
+        oldPath = getFullPath(oldPath);
+        newPath = getFullPath(newPath);
+
+        if(!isValidPath(oldPath)){
+            return false;
+        }
+        if(!isValidPath(newPath)){
+            return false;
+        }
+
+        File destination = getFolderbyPath(newPath);
+        if(!destination.getMimeType().equals("application/vnd.google-apps.folder")){
+            System.out.println("Invalid destination file path: " + newPath);
+            return false;
+        }
+        File sourceFile = getFolderbyPath(oldPath);
+        String oldParentID = sourceFile.getParents().get(0);
+        String newParentID = destination.getId();
+
+        String query = "addParents=" + newParentID + ", removeParents=" + oldParentID;
+        try {
+            service.files().update(sourceFile.getId(), null)
+                    .setRemoveParents(oldParentID)
+                    .setAddParents(newParentID)
+                    .execute();
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -270,21 +300,22 @@ public class GoogleDriveImpl extends FileManager{
             String[] folders = path.split("/");
             String previous = null;
             for(int i = 0; i < folders.length; i++){
-                if(i == folders.length-1 && folders[i] == "")
+                if(i == folders.length-1 && folders[i].equals(""))
                     return true;
                 if(folders[i].equals(""))
                     return false;
-                previous = getGoogleSubFolderByName(previous, folders[i]).get(0).getId();
+                previous = getGoogleSubFileByName(previous, folders[i]).get(0).getId();
             }
             return true;
         }catch (Exception e){
+            e.printStackTrace();
             System.out.println("Invalid path: " + path);
             return false;
         }
     }
 
     // com.google.api.services.drive.model.File
-    private List<File> getGoogleSubFolderByName(String googleFolderIdParent, String subFolderName)
+    private List<File> getGoogleSubFileByName(String googleFolderIdParent, String subFileName)
             throws IOException {
 
         String pageToken = null;
@@ -292,12 +323,12 @@ public class GoogleDriveImpl extends FileManager{
 
         String query = null;
         if (googleFolderIdParent == null) {
-            query = " name = '" + subFolderName + "' " //
-                    + " and mimeType = 'application/vnd.google-apps.folder' " //
+            query = " name = '" + subFileName + "' " //
+//                    + " and mimeType = 'application/vnd.google-apps.folder' " //
                     + " and 'root' in parents";
         } else {
-            query = " name = '" + subFolderName + "' " //
-                    + " and mimeType = 'application/vnd.google-apps.folder' " //
+            query = " name = '" + subFileName + "' " //
+//                    + " and mimeType = 'application/vnd.google-apps.folder' " //
                     + " and '" + googleFolderIdParent + "' in parents";
         }
 
@@ -321,7 +352,7 @@ public class GoogleDriveImpl extends FileManager{
             String[] folders = path.split("/");
             File previous = service.files().get("root").setFields("name, id, size").execute();
             for (String folder : folders) {
-                previous = getGoogleSubFolderByName(previous.getId(), folder).get(0);
+                previous = getGoogleSubFileByName(previous.getId(), folder).get(0);
             }
             return previous;
         }catch (Exception e){
