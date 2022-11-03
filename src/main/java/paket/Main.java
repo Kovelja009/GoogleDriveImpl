@@ -267,18 +267,10 @@ public class Main {
 //            configuration.setFile_n(3);
 //            configuration.setSize(76949);
 //            configuration.getExcludedExt().add("jpeg");
-            System.out.println(gdg.createRoot("", "Root14", configuration));
+            System.out.println(gdg.createRoot("", "Root5", configuration));
             gdg.upload("src/main/resources/photo2.jpg","");
-            gdg.download("photo2.jpg","C:\\Users\\Vanja\\Downloads");
+            System.out.println("Renaming: " + gdg.rename("photo2.jpg", "steins_gate.jpg"));
 //            gdg.delete("Folder1");
-
-
-
-
-
-
-
-
 
 //            for(File f : gdg.getService().files().list()
 //                    .setFields("files(name, id, parents, mimeType, createdTime, size)")

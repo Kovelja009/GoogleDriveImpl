@@ -167,7 +167,6 @@ public class GoogleDriveImpl extends FileManager{
         String oldParentID = sourceFile.getParents().get(0);
         String newParentID = destination.getId();
 
-        String query = "addParents=" + newParentID + ", removeParents=" + oldParentID;
         try {
             service.files().update(sourceFile.getId(), null)
                     .setRemoveParents(oldParentID)
@@ -189,11 +188,7 @@ public class GoogleDriveImpl extends FileManager{
             return false;
         File file = getFolderbyPath(item);
         destination = destination + "/" + item.substring(item.lastIndexOf("/")+1);
-        downloadFile(file.getId(), destination);
-
-
-
-        return true;
+        return downloadFile(file.getId(), destination);
     }
 
     @Override
@@ -228,8 +223,27 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean rename(String s, String s1) {
-        return false;
+    public boolean rename(String path, String newName) {
+        path = getFullPath(path);
+        if(!isValidPath(path))
+            return false;
+
+        File file = getFolderbyPath(path);
+
+        if(!isNameValid(file.getParents().get(0),newName,file.getMimeType()))
+            return false;
+        try {
+            File newFile = new File();
+            newFile.setName(newName);
+            service.files().update(file.getId(), newFile)
+                    .execute();
+            System.out.println(file.getName());
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -378,7 +392,6 @@ public class GoogleDriveImpl extends FileManager{
 
 
         try {
-
             String pageToken = null;
             List<File> list = new ArrayList<File>();
             String query = null;
@@ -395,6 +408,7 @@ public class GoogleDriveImpl extends FileManager{
             return list.isEmpty();
         }catch (Exception e){
             e.printStackTrace();
+            System.out.println("Name: " + name + " is not valid!");
             return false;
         }
     }
@@ -448,14 +462,16 @@ public class GoogleDriveImpl extends FileManager{
     }
 
 
-    private void downloadFile(String fileID, String OSpath){
+    private boolean downloadFile(String fileID, String OSpath){
         try {
             FileOutputStream os = new FileOutputStream(OSpath);
             service.files().get(fileID)
                     .executeMediaAndDownloadTo(os);
             os.close();
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 
