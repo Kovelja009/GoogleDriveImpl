@@ -264,12 +264,11 @@ public class Main {
         try {
             GoogleDriveImpl gdg = new GoogleDriveImpl();
             Configuration configuration = new Configuration();
-//            configuration.setFile_n(3);
-//            configuration.setSize(76949);
-//            configuration.getExcludedExt().add("jpeg");
-            System.out.println(gdg.createRoot("", "Root5", configuration));
-            gdg.upload("src/main/resources/photo2.jpg","");
-            System.out.println("Renaming: " + gdg.rename("photo2.jpg", "steins_gate.jpg"));
+            System.out.println(gdg.createRoot("", "Root23", configuration, 2));
+            gdg.mkdir("", "Folder", 3, 0);
+            gdg.upload("src/main/resources/photo2.jpg","Folder_1");
+            gdg.saveConfig();
+//            System.out.println("Renaming: " + gdg.rename("photo2.jpg", "steins_gate.jpg"));
 //            gdg.delete("Folder1");
 
 //            for(File f : gdg.getService().files().list()

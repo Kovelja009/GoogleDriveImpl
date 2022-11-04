@@ -25,7 +25,7 @@ public class GoogleDriveImpl extends FileManager{
     private static Map<String, String> map = new HashMap<>();
 
     public GoogleDriveImpl(){
-        setRootPath("");
+        this.rootPath = "";
         try {
             gDrive = new GDrive();
             service = gDrive.getDrive();
@@ -37,8 +37,6 @@ public class GoogleDriveImpl extends FileManager{
         try {
             Reader reader = Files.newBufferedReader(Paths.get(TYPE_MAP));
             map = gson.fromJson(reader, Map.class);
-            System.out.println(map);
-
         }catch (Exception e){
             System.out.println("Greska pri ucitavanju mape");
         }
@@ -55,37 +53,40 @@ public class GoogleDriveImpl extends FileManager{
         else
             rootPath = path+"/"+name;
 
-        setRootPath(rootPath);
-        setConfiguration(configuration);
-        saveConfig(rootPath);
+        this.rootPath = rootPath;
+        this.configuration = configuration;
+//        saveConfig(rootPath); <- odraditi na kraju
         return true;
     }
 
     @Override
-    protected boolean checkConfig(String parentID, String ext, long size) {
+    protected boolean checkConfig(String parentPath, String ext, long size) {
+
         try {
+            File parent = getFolderbyPath(parentPath);
+            String parentID = parent.getId();
             String query = "'" + parentID + "' in parents";
             List<File> children = service.files().list().setQ(query).setSpaces("drive")
                     .setFields("files(id, name, size)")
                     .execute().getFiles();
 
-            long sum = 0L;
-            for(File file : children){
-                if(file.getSize() != null)
-                    sum+= file.getSize();
+
+            if(configuration.getFile_n().containsKey(parentPath)){
+                int max_files = configuration.getFile_n().get(parentPath);
+                if(1 + children.size() > max_files){
+                    System.out.println("Max number of files in a " + parentPath + " is: " + configuration.getFile_n().get(parentPath));
+                    return false;
+                }
             }
-            if(1 + children.size() > getConfiguration().getFile_n()){
-                System.out.println("Max number of files in a folder is: " + getConfiguration().getFile_n());
-                return false;
-            }
-            if(sum + size > getConfiguration().getSize()){
-                System.out.println("There is not enough space in folder! Free: "+ (getConfiguration().getSize() - sum) + ", Your file: " + size);
+
+            if(currSize + size > configuration.getSize()){
+                System.out.println("There is not enough space in folder! Free: "+ (configuration.getSize() - currSize) + ", Your file: " + size);
                 return false;
             }
             if(ext.equals(""))
                 return true;
             else
-                return !getConfiguration().getExcludedExt().contains(ext.toLowerCase());
+                return !configuration.getExcludedExt().contains(ext.toLowerCase());
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -104,7 +105,7 @@ public class GoogleDriveImpl extends FileManager{
                 System.out.println("Name: " + name + " is not valid!");
                 return false;
             }
-            if(!checkConfig(par.getId(), "", 0)){
+            if(!checkConfig(path, "", 0)){
                 System.out.println("Please check config before trying to make: " + name);
                 return false;
             }
@@ -138,7 +139,16 @@ public class GoogleDriveImpl extends FileManager{
         }
         try {
             File file = getFolderbyPath(path);
+
+            long delSize = 0L;
+            if(file.getSize() != null)
+                delSize = file.getSize();
+
             service.files().delete(file.getId()).execute();
+
+            currSize -= delSize;
+            // removing constraints since we don`t have that folder anymore
+            configuration.getFile_n().remove(path);
         }catch (Exception e){
             e.printStackTrace();
             return false;
@@ -208,12 +218,15 @@ public class GoogleDriveImpl extends FileManager{
                 return false;
             }
 
-            if(!checkConfig(parent.getId(), ext, Files.size(Paths.get(javaFile.getPath())))){
+
+            long size = Files.size(Paths.get(javaFile.getPath()));
+            if(!checkConfig(destination, ext, size)){
                 System.out.println("Please check config!File tried to upload: " + javaFile.getPath());
                 return false;
             }
 
             uploadFile(parent.getId(), javaFile);
+            currSize += size;
 
         }catch (Exception e){
             e.printStackTrace();
@@ -238,6 +251,14 @@ public class GoogleDriveImpl extends FileManager{
             service.files().update(file.getId(), newFile)
                     .execute();
             System.out.println(file.getName());
+
+            // during renaming, if folder had some constraints -> we need to update its info
+            Integer value;
+            if((value = configuration.getFile_n().get(path)) != null){
+                configuration.getFile_n().remove(path);
+                String newPath = path.substring(0,path.lastIndexOf("/")+1) + newName;
+                configuration.getFile_n().put(newPath, value);
+            }
         }catch (Exception e){
             e.printStackTrace();
             return false;
@@ -247,15 +268,14 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-//    TODO obrisati iz repo-a ako postoji i onda upload novu
 //    TODO dodati na zatvaranju
-    public void saveConfig(String path) {
+    public void saveConfig() {
         try(FileWriter writer = new FileWriter("src/main/resources/config.json")) {
             Gson gson = new Gson();
-            gson.toJson(getConfiguration(), writer);
+            gson.toJson(configuration, writer);
             writer.close();
             java.io.File javaFile = new java.io.File("src/main/resources/config.json");
-            String rootID = getFolderbyPath(path).getId();
+            String rootID = getFolderbyPath(rootPath).getId();
             uploadFile(rootID, javaFile);
             javaFile.delete();
         }catch (Exception e){
@@ -488,11 +508,21 @@ public class GoogleDriveImpl extends FileManager{
         }
     }
 
-    private String getFullPath(String path){
-        if(path.equals(""))
-            return getRootPath();
+    @Override
+    protected String getFullPath(String path){
+
+        path = path.replace("\\", "/");
+        path = path.replace("//", "/");
+        if(path.length() >= 1 && path.charAt(path.length()-1) == '/')
+            path = path.substring(0, path.length()-1);
+        if(path.length() >= 1 && path.charAt(0) == '/')
+            path = path.substring(1);
+
+        if(path.equals("") || path.equals(rootPath))
+            return rootPath;
         else{
-            String pth = getRootPath()+"/"+path;
+            String pth = rootPath+"/"+path;
+//            path = path.replace("//", "/");
             if(pth.charAt(pth.length()-1) == '/')
                 pth = pth.substring(0, pth.length()-1);
             if(pth.charAt(0) == '/')
