@@ -343,23 +343,12 @@ public class GoogleDriveImpl extends FileManager{
         return myFiles;
     }
 
-    private List<MyFile> getRecursiveFiles(File dir){
-        List<MyFile> myFiles = new ArrayList<>();
-        try {
-            myFiles.addAll(privateSearchDir(dir.getId()));
-            List<File> folders = service.files().list()
-                    .setQ( "'" + dir.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
-                    .execute().getFiles();
-            for(File folder : folders)
-                myFiles.addAll(getRecursiveFiles(folder));
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return myFiles;
-    }
-
     @Override
-    public List<MyFile> filterByExt(String s, String s1) {
+    public List<MyFile> filterByExt(String path, String ext) {
+        path = getFullUnixPath(path);
+        String parentID = getFilebyPath(path).getId();
+
+
         return null;
     }
 
@@ -369,7 +358,14 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean existName(String s, String s1) {
+    public boolean existName(String path, String name) {
+        try {
+         return !service.files().list()
+                .setQ("name = " + "'" + name + "'")
+                .execute().getFiles().isEmpty();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         return false;
     }
 
@@ -420,6 +416,21 @@ public class GoogleDriveImpl extends FileManager{
             System.out.println("Invalid path: " + path);
             return false;
         }
+    }
+
+    private List<MyFile> getRecursiveFiles(File dir){
+        List<MyFile> myFiles = new ArrayList<>();
+        try {
+            myFiles.addAll(privateSearchDir(dir.getId()));
+            List<File> folders = service.files().list()
+                    .setQ( "'" + dir.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
+                    .execute().getFiles();
+            for(File folder : folders)
+                myFiles.addAll(getRecursiveFiles(folder));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return myFiles;
     }
 
     private List<MyFile> privateSearchDir(String parentID) {

@@ -74,7 +74,7 @@ class GDrive {
      */
     private static Credential authorize() throws IOException {
         // Load client secrets.
-        InputStream in = GoogleDriveSample.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GDrive.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
