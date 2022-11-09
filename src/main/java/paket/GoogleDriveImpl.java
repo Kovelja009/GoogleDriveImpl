@@ -343,9 +343,14 @@ public class GoogleDriveImpl extends FileManager{
 
     @Override
     public boolean existName(String path, String name) {
+        path = getFullUnixPath(path);
+        if(!isValidPath(path))
+            return false;
+
+        File folder = getFilebyPath(path);
         try {
          return !service.files().list()
-                .setQ("name = " + "'" + name + "'")
+                .setQ("name = " + "'" + name + "' and '" + folder.getId() + "' in parents")
                 .execute().getFiles().isEmpty();
         }catch (Exception e){
             e.printStackTrace();
@@ -374,8 +379,8 @@ public class GoogleDriveImpl extends FileManager{
 
 
     @Override
-    public List<String> getParentPath(String s) {
-        return null;
+    public List<String> getParentPath(String name) {
+        return internalsearchParents(rootPath, name);
     }
 
     @Override
@@ -648,7 +653,6 @@ public class GoogleDriveImpl extends FileManager{
         while(!currID.equals(rootID)){
             File currFile = getFolderByID(currID);
             path  = "/" + currFile.getName() + path;
-            System.out.println(currFile.getName()+"-------");
             currID = currFile.getParents().get(0);
         }
         return rootPath + path;
@@ -710,5 +714,31 @@ public class GoogleDriveImpl extends FileManager{
             return myFiles;
         }
         return myFiles;
+    }
+
+    private List<String> internalsearchParents(String path, String name){
+        List<String> parents = new ArrayList<>();
+        try {
+            File rootFile = getFilebyPath(path);
+            List<File> files = service.files().list()
+                    .setQ("name = '" + name + "' and mimeType != 'application/vnd.google-apps.folder' and '" + rootFile.getId() + "' in parents")
+                    .setFields("files(id, name)")
+                    .execute().getFiles();
+
+            if(files != null && !files.isEmpty())
+                parents.add(path);
+
+            List<File> folders = service.files().list()
+                    .setQ( "'" + rootFile.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
+                    .setFields("files(id, name, mimeType, parents)")
+                    .execute().getFiles();
+
+            for(File dir : folders)
+                parents.addAll(internalsearchParents(getDFSpath(dir.getId()),name));
+        }catch (Exception e){
+            e.printStackTrace();
+            return parents;
+        }
+        return parents;
     }
 }
