@@ -309,13 +309,7 @@ public class GoogleDriveImpl extends FileManager{
                     .setFields("files(id, name, mimeType, createdTime, modifiedTime, size)")
                     .execute().getFiles();
 
-            for(File gFile : gList){
-
-                LocalDateTime modified = convertToLocalDateTime(gFile.getModifiedTime());
-                LocalDateTime created = convertToLocalDateTime(gFile.getCreatedTime());
-                MyFile myFile = new MyFile(getDFSpath(gFile.getId()),gFile.getName(),gFile.getSize(),modified, created, getExtension(gFile.getName()));
-                myFiles.add(myFile);
-            }
+            convertToMyFiles(myFiles, gList);
         }catch (Exception e){
             e.printStackTrace();
             System.out.println("Error during searchDir!");
@@ -333,34 +327,18 @@ public class GoogleDriveImpl extends FileManager{
         try {
             path = getFullUnixPath(path);
             String parentID = getFilebyPath(path).getId();
-            System.out.println("parentID -> " + parentID);
             List<File> folders;
             folders = service.files().list()
                     .setQ( "'" + parentID + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
                     .setFields("files(id, name, mimeType, parents)")
                     .execute().getFiles();
-            for(File dir : folders){
-                myFiles.addAll(getRecursiveFiles(dir));
-            }
+            for(File dir : folders)
+                myFiles.addAll(getRecursiveFiles(dir,""));
         }catch (Exception e){
             e.printStackTrace();
             return myFiles;
         }
         return myFiles;
-    }
-
-    @Override
-    public List<MyFile> filterByExt(String path, String ext) {
-        path = getFullUnixPath(path);
-        String parentID = getFilebyPath(path).getId();
-
-
-        return null;
-    }
-
-    @Override
-    public List<MyFile> searchSubstring(String s) {
-        return null;
     }
 
     @Override
@@ -374,6 +352,46 @@ public class GoogleDriveImpl extends FileManager{
         }
         return false;
     }
+
+    @Override
+    public List<MyFile> filterByExt(String path, String ext) {
+        path = getFullUnixPath(path);
+        String parentID = getFilebyPath(path).getId();
+
+
+        return null;
+    }
+
+    @Override
+    public List<MyFile> searchSubstring(String substr) {
+        List<MyFile> myFiles = new ArrayList<>();
+        try {
+            File rootFile = getFilebyPath(rootPath);
+            List<File> files = service.files().list()
+                    .setQ("name contains '" + substr + "' and mimeType != 'application/vnd.google-apps.folder' and '" + rootFile.getId() + "' in parents")
+                    .setFields("files(id, name, mimeType, createdTime, modifiedTime, size, parents)")
+                    .execute().getFiles();
+
+            if(files != null && !rootFile.isEmpty())
+                convertToMyFiles(myFiles,files);
+
+            List<File> folders = service.files().list()
+                            .setQ( "'" + rootFile.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
+                            .setFields("files(id, name, mimeType, parents)")
+                            .execute().getFiles();
+
+            String condition = "name contains '" + substr + "' and ";
+
+            for(File dir : folders)
+                myFiles.addAll(getRecursiveFiles(dir, condition));
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return myFiles;
+        }
+        return myFiles;
+    }
+
 
     @Override
     public List<String> getParentPath(String s) {
@@ -424,42 +442,47 @@ public class GoogleDriveImpl extends FileManager{
         }
     }
 
-    private List<MyFile> getRecursiveFiles(File dir){
+    private List<MyFile> getRecursiveFiles(File dir, String condition){
         List<MyFile> myFiles = new ArrayList<>();
         try {
-            myFiles.addAll(privateSearchDir(dir.getId()));
+            myFiles.addAll(privateSearchDir(dir.getId(), condition));
             List<File> folders = service.files().list()
                     .setQ( "'" + dir.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
                     .execute().getFiles();
             for(File folder : folders)
-                myFiles.addAll(getRecursiveFiles(folder));
+                myFiles.addAll(getRecursiveFiles(folder, condition));
         }catch (Exception e){
             e.printStackTrace();
         }
         return myFiles;
     }
 
-    private List<MyFile> privateSearchDir(String parentID) {
+    private List<MyFile> privateSearchDir(String parentID, String substr) {
         List<MyFile> myFiles = new ArrayList<>();
         try {
-            List<File> gList = service.files().list()
-                    .setQ("'" + parentID + "'" + " in parents and mimeType != 'application/vnd.google-apps.folder'")
+            List<File> gList = new ArrayList<>();
+            gList = service.files().list()
+                    .setQ(substr + "'" + parentID + "'" + " in parents and mimeType != 'application/vnd.google-apps.folder'")
                     .setFields("files(id, name, mimeType, createdTime, modifiedTime, size)")
                     .execute().getFiles();
 
-            for(File gFile : gList){
-
-                LocalDateTime modified = convertToLocalDateTime(gFile.getModifiedTime());
-                LocalDateTime created = convertToLocalDateTime(gFile.getCreatedTime());
-                MyFile myFile = new MyFile(getDFSpath(gFile.getId()),gFile.getName(),gFile.getSize(),modified, created, getExtension(gFile.getName()));
-                myFiles.add(myFile);
-            }
+            convertToMyFiles(myFiles, gList);
         }catch (Exception e){
             e.printStackTrace();
             System.out.println("Error during privateSearchDir!");
             return myFiles;
         }
         return myFiles;
+    }
+
+    private void convertToMyFiles(List<MyFile> myFiles, List<File> gList) {
+        for(File gFile : gList){
+
+            LocalDateTime modified = convertToLocalDateTime(gFile.getModifiedTime());
+            LocalDateTime created = convertToLocalDateTime(gFile.getCreatedTime());
+            MyFile myFile = new MyFile(getDFSpath(gFile.getId()),gFile.getName(),gFile.getSize(),modified, created, getExtension(gFile.getName()));
+            myFiles.add(myFile);
+        }
     }
 
 
@@ -645,6 +668,7 @@ public class GoogleDriveImpl extends FileManager{
         while(!currID.equals(rootID)){
             File currFile = getFolderByID(currID);
             path  = "/" + currFile.getName() + path;
+            System.out.println(currFile.getName()+"-------");
             currID = currFile.getParents().get(0);
         }
         return rootPath + path;

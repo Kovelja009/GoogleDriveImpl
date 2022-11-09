@@ -21,13 +21,14 @@ public class Main {
         try {
             GoogleDriveImpl gdg = new GoogleDriveImpl();
             Configuration configuration = new Configuration();
-            System.out.println(gdg.createRoot("", "Root1337", configuration, 10));
+            System.out.println(gdg.createRoot("", "Root2853", configuration, 10));
             gdg.mkdir("", "Folder");
-            gdg.mkdir("","Folder2", 0,true);
-            gdg.mkdir("Folder", "dir");
+            gdg.mkdir("","Folder2", 1,true);
+//            gdg.mkdir("Folder", "dir");
             gdg.upload("src/main/resources/photo.png", "Folder");
-            gdg.move("Folder/photo.png", "Folder2");
-//            gdg.upload("src/main/resources/photo2.jpg","Folder_1/dir_1");
+//            gdg.move("Folder/photo.png", "Folder2");
+            gdg.upload("src/main/resources/photo2.jpg","Folder2");
+            System.out.println(gdg.searchSubstring("photo"));
             gdg.saveConfig();
 //            System.out.println("Renaming: " + gdg.rename("photo2.jpg", "steins_gate.jpg"));
 //            gdg.delete("Folder1");
