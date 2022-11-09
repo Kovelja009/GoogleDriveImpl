@@ -182,6 +182,12 @@ public class GoogleDriveImpl extends FileManager{
         File sourceFile = getFilebyPath(oldPath);
         String oldParentID = sourceFile.getParents().get(0);
         String newParentID = destination.getId();
+        String ext = getExtension(oldPath);
+
+        if(!checkConfig(newPath, ext, sourceFile.getSize())){
+            System.out.println("Can`t move " + sourceFile.getName() + ", please check config!");
+            return false;
+        }
 
         try {
             service.files().update(sourceFile.getId(), null)
