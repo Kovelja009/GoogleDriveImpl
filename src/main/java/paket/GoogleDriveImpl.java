@@ -353,43 +353,23 @@ public class GoogleDriveImpl extends FileManager{
         return false;
     }
 
-    @Override
+    @Override   // if error occurs, returns empty list
     public List<MyFile> filterByExt(String path, String ext) {
         path = getFullUnixPath(path);
+        if(!isValidPath(path)){
+            System.out.println();
+            return new ArrayList<MyFile>();
+        }
         String parentID = getFilebyPath(path).getId();
-
-
-        return null;
+        if(ext.charAt(0) != '.')
+            ext = "." + ext;
+        return internalsearchSubstring(path, ext);
     }
+
 
     @Override
     public List<MyFile> searchSubstring(String substr) {
-        List<MyFile> myFiles = new ArrayList<>();
-        try {
-            File rootFile = getFilebyPath(rootPath);
-            List<File> files = service.files().list()
-                    .setQ("name contains '" + substr + "' and mimeType != 'application/vnd.google-apps.folder' and '" + rootFile.getId() + "' in parents")
-                    .setFields("files(id, name, mimeType, createdTime, modifiedTime, size, parents)")
-                    .execute().getFiles();
-
-            if(files != null && !rootFile.isEmpty())
-                convertToMyFiles(myFiles,files);
-
-            List<File> folders = service.files().list()
-                            .setQ( "'" + rootFile.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
-                            .setFields("files(id, name, mimeType, parents)")
-                            .execute().getFiles();
-
-            String condition = "name contains '" + substr + "' and ";
-
-            for(File dir : folders)
-                myFiles.addAll(getRecursiveFiles(dir, condition));
-
-        }catch (Exception e){
-            e.printStackTrace();
-            return myFiles;
-        }
-        return myFiles;
+        return internalsearchSubstring(rootPath, substr);
     }
 
 
@@ -701,5 +681,34 @@ public class GoogleDriveImpl extends FileManager{
                 pth = pth.substring(1);
             return pth;
         }
+    }
+
+    private List<MyFile> internalsearchSubstring(String path, String substr){
+        List<MyFile> myFiles = new ArrayList<>();
+        try {
+            File rootFile = getFilebyPath(path);
+            List<File> files = service.files().list()
+                    .setQ("name contains '" + substr + "' and mimeType != 'application/vnd.google-apps.folder' and '" + rootFile.getId() + "' in parents")
+                    .setFields("files(id, name, mimeType, createdTime, modifiedTime, size, parents)")
+                    .execute().getFiles();
+
+            if(files != null && !rootFile.isEmpty())
+                convertToMyFiles(myFiles,files);
+
+            List<File> folders = service.files().list()
+                    .setQ( "'" + rootFile.getId() + "'" + " in parents and mimeType = 'application/vnd.google-apps.folder'")
+                    .setFields("files(id, name, mimeType, parents)")
+                    .execute().getFiles();
+
+            String condition = "name contains '" + substr + "' and ";
+
+            for(File dir : folders)
+                myFiles.addAll(getRecursiveFiles(dir, condition));
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return myFiles;
+        }
+        return myFiles;
     }
 }
