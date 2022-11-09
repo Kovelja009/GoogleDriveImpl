@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.time.temporal.TemporalField;
 import java.util.*;
 
 //TODO postaviti kao GitHubPackage
@@ -384,6 +386,43 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
+    public List<MyFile> filterByPeriod(String path, LocalDateTime startDate, LocalDateTime endDate, boolean modified) {
+        List<MyFile> myFiles = new ArrayList<>();
+        path = getFullUnixPath(path);
+        if(!isValidPath(path))
+            return myFiles;
+
+        File parent = getFilebyPath(path);
+        try {
+            List <File> files = service.files().list()
+                        .setQ("'" + parent.getId() + "' in parents and mimeType != 'application/vnd.google-apps.folder'")
+                        .setFields("files(id, name, mimeType, createdTime, modifiedTime, size)")
+                        .execute().getFiles();
+
+            List<MyFile> temp = new ArrayList<>();
+            convertToMyFiles(temp, files);
+
+            if(modified){
+                for(MyFile f : temp){
+                    if(f.getLastModified().isAfter(startDate) && f.getLastModified().isBefore(endDate))
+                        myFiles.add(f);
+                }
+            }else{
+                for(MyFile f : temp){
+                    if(f.getTimeCreated().isAfter(startDate) && f.getTimeCreated().isBefore(endDate))
+                        myFiles.add(f);
+                }
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return myFiles;
+        }
+
+        return myFiles;
+    }
+
+    @Override
     public List<MyFile> sortBy(List<MyFile> list, Metadata metadata) {
         return null;
     }
@@ -393,10 +432,6 @@ public class GoogleDriveImpl extends FileManager{
         return null;
     }
 
-    @Override
-    public List<MyFile> filterByPeriod(String s, LocalDateTime date, LocalDateTime date1, boolean b) {
-        return null;
-    }
 
     static void std_out(File f){
         System.out.println("Name: " + f.getName() + "   Id: " + f.getId() + "   Parents: " + f.getParents() + " Type: " + f.getMimeType() + "   CreatedTime: " + f.getCreatedTime() + " Size: " + f.getSize());
