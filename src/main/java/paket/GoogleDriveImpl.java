@@ -422,17 +422,6 @@ public class GoogleDriveImpl extends FileManager{
         return myFiles;
     }
 
-    @Override
-    public List<MyFile> sortBy(List<MyFile> list, Metadata metadata) {
-        return null;
-    }
-
-    @Override
-    public List<String> filterData(List<MyFile> list, List<Metadata> list1) {
-        return null;
-    }
-
-
     static void std_out(File f){
         System.out.println("Name: " + f.getName() + "   Id: " + f.getId() + "   Parents: " + f.getParents() + " Type: " + f.getMimeType() + "   CreatedTime: " + f.getCreatedTime() + " Size: " + f.getSize());
         System.out.println("-----------------");
