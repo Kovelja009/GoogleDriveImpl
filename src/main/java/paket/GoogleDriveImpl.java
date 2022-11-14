@@ -583,8 +583,7 @@ public class GoogleDriveImpl extends FileManager{
         if(isValidPath(path)){
             realFolderId = getFilebyPath(path).getId();
             if(!isNameValid(realFolderId, name, "application/vnd.google-apps.folder")){
-                System.out.println("Name: " + name + " is not valid!");
-                return null;
+                throw new MyException("Name: " + name + " is not valid!");
             }
         }else{
             throw new MyException("Path: " + path + " is not valid!");
