@@ -37,6 +37,14 @@
         </plugins>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Kovelja009 Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/Kovelja009/GoogleDriveImpl</url>
+        </repository>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
                 <groupId>com.komponente.project</groupId>
