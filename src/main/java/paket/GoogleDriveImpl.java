@@ -587,8 +587,7 @@ public class GoogleDriveImpl extends FileManager{
                 return null;
             }
         }else{
-            System.out.println("Path: " + path + " is not valid!");
-            return null;
+            throw new MyException("Path: " + path + " is not valid!");
         }
         try {
             File fileMetadata = new File();
