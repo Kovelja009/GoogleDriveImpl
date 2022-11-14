@@ -20,12 +20,16 @@ import java.util.*;
 //TODO postaviti kao GitHubPackage
 //TODO postaviti scope runtime
 //TODO skloniti getter
-@Getter
 public class GoogleDriveImpl extends FileManager{
     private GDrive gDrive;
     private Drive service;
     private static final String TYPE_MAP = "src/main/resources/typeMap.json";
     private static Map<String, String> map = new HashMap<>();
+
+    static {
+        RepoManager.registerManager(new GoogleDriveImpl());
+    }
+
 
     public GoogleDriveImpl(){
         this.rootPath = "";
