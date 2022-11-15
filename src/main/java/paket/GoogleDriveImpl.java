@@ -7,15 +7,12 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.gson.Gson;
-import lombok.Getter;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.time.temporal.TemporalField;
 import java.util.*;
 
 //TODO postaviti kao GitHubPackage
@@ -38,15 +35,8 @@ public class GoogleDriveImpl extends FileManager{
         }catch (Exception e){
             e.printStackTrace();
         }
-
-        Gson gson = new Gson();
-        try {
-            Reader reader = Files.newBufferedReader(Paths.get(TYPE_MAP));
-            map = gson.fromJson(reader, Map.class);
-        }catch (Exception e){
-            System.out.println("Greska pri ucitavanju mape");
-        }
-
+        map = new HashMap<>();
+        fillMap();
     }
 
     @Override
@@ -754,5 +744,34 @@ public class GoogleDriveImpl extends FileManager{
             return parents;
         }
         return parents;
+    }
+
+    private void fillMap(){
+        map.put("xls" , "application/vnd.ms-excel");
+        map.put("xlsx" , "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        map.put("xml" , "text/xml");
+        map.put("ods" , "application/vnd.oasis.opendocument.spreadsheet");
+        map.put("csv" , "text/plain");
+        map.put("tmpl" , "text/plain");
+        map.put("pdf" ,  "application/pdf");
+        map.put("php" , "application/x-httpd-php");
+        map.put("jpg" , "image/jpeg");
+        map.put("png" , "image/png");
+        map.put("gif" , "image/gif");
+        map.put("bmp" , "image/bmp");
+        map.put("txt" , "text/plain");
+        map.put("doc" , "application/msword");
+        map.put("js" , "text/js");
+        map.put("swf" , "application/x-shockwave-flash");
+        map.put("mp3" , "audio/mpeg");
+        map.put("zip" , "application/zip");
+        map.put("rar" , "application/rar");
+        map.put("tar" , "application/tar");
+        map.put("arj" , "application/arj");
+        map.put("cab" , "application/cab");
+        map.put("html" , "text/html");
+        map.put("htm" , "text/html");
+        map.put("default" , "application/octet-stream");
+        map.put("folder" , "application/vnd.google-apps.folder");
     }
 }

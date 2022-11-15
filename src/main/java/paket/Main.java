@@ -21,20 +21,20 @@ public class Main {
     public static void main(String[] args) {
         try {
             GoogleDriveImpl gdg = new GoogleDriveImpl();
-            Configuration configuration = new Configuration();
-            System.out.println(gdg.createRoot("", "Roo", configuration, 10));
-            gdg.mkdir("", "Folder");
+//            Configuration configuration = new Configuration();
+//            System.out.println(gdg.createRoot("", "Rooaz", configuration, 10));
+//            gdg.mkdir("", "Folder");
 //            gdg.mkdir("","Folder2", 1,true);
 //            gdg.mkdir("", "Folder3");
 ////            gdg.mkdir("Folder", "dir");
-            gdg.upload("src/main/resources/photo.png", "Folder");
+//            gdg.upload("src/main/resources/photo.png", "Folder");
 //            gdg.upload("src/main/resources/photo.png", "Folder2");
 //            System.out.println(gdg.getParentPath("photo.png"));
 //            System.out.println(gdg.filterByPeriod("Folder", LocalDateTime.of(2000,2,2,2,2,2), LocalDateTime.now(), false));
 //            gdg.move("Folder/photo.png", "Folder2");
 //            gdg.upload("src/main/resources/photo2.jpg","Folder2");
 //            System.out.println(gdg.filterByExt("png"));
-            gdg.saveConfig();
+//            gdg.saveConfig();
 //            System.out.println("Renaming: " + gdg.rename("photo2.jpg", "steins_gate.jpg"));
 //            gdg.delete("Folder1");
 
