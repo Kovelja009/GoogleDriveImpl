@@ -1,6 +1,5 @@
 package paket;
 
-import Data.MyException;
 import Data.MyFile;
 import com.google.api.client.http.FileContent;
 import com.google.api.client.util.DateTime;
@@ -15,21 +14,17 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.time.temporal.TemporalField;
 import java.util.*;
 
 //TODO postaviti kao GitHubPackage
 //TODO postaviti scope runtime
-//TODO skloniti getter
 public class GoogleDriveImpl extends FileManager{
     private GDrive gDrive;
     private Drive service;
     private static final String TYPE_MAP = "src/main/resources/typeMap.json";
     private static Map<String, String> map = new HashMap<>();
-
-    static {
-        RepoManager.registerManager(new GoogleDriveImpl());
-    }
-
 
     public GoogleDriveImpl(){
         this.rootPath = "";
@@ -51,7 +46,7 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean createRoot(String path, String name, Configuration configuration)throws MyException {
+    public boolean createRoot(String path, String name, Configuration configuration){
         if(rootMaking(path,name) == null)
             return false;
         String rootPath;
@@ -63,11 +58,12 @@ public class GoogleDriveImpl extends FileManager{
         this.rootPath = rootPath;
         this.configuration = configuration;
         File file = getFilebyPath(rootPath);
+//        saveConfig(rootPath); <- odraditi na kraju
         return true;
     }
 
     @Override
-    protected boolean checkConfig(String parentPath, String ext, long size) throws MyException{
+    protected boolean checkConfig(String parentPath, String ext, long size) {
 
         try {
             File parent = getFilebyPath(parentPath);
@@ -81,12 +77,14 @@ public class GoogleDriveImpl extends FileManager{
             if(configuration.getFile_n().containsKey(parentID)){
                 int max_files = configuration.getFile_n().get(parentID);
                 if(1 + children.size() > max_files){
-                    throw new MyException("Max number of files in a " + parentPath + " is: " + configuration.getFile_n().get(parentID));
+                    System.out.println("Max number of files in a " + parentPath + " is: " + configuration.getFile_n().get(parentID));
+                    return false;
                 }
             }
 
             if(currSize + size > configuration.getSize()){
-                throw new MyException("There is not enough space in folder! Free: "+ (configuration.getSize() - currSize) + ", Your file: " + size);
+                System.out.println("There is not enough space in folder! Free: "+ (configuration.getSize() - currSize) + ", Your file: " + size);
+                return false;
             }
             if(ext.equals(""))
                 return true;
@@ -94,27 +92,30 @@ public class GoogleDriveImpl extends FileManager{
                 return !configuration.getExcludedExt().contains(ext.toLowerCase());
 
         } catch (IOException e) {
-            throw new MyException(e.getMessage());
+            throw new RuntimeException(e);
         }
 
     }
 
 
     @Override
-    public boolean mkdir(String path, String name)throws MyException{
+    public boolean mkdir(String path, String name) {
         String realFolderId = null;
         path = getFullUnixPath(path);
         if(isValidPath(path)){
             File par =  getFilebyPath(path);
             realFolderId = par.getId();
             if(!isNameValid(realFolderId, name, "application/vnd.google-apps.folder")){
-                throw new MyException("Name: " + name + " is not valid!");
+                System.out.println("Name: " + name + " is not valid!");
+                return false;
             }
             if(!checkConfig(path, "", 0)){
+                System.out.println("Please check config before trying to make: " + name);
                 return false;
             }
         }else{
-            throw new MyException("Path: " + path + " is not valid!");
+            System.out.println("Path: " + path + " is not valid!");
+            return false;
         }
         try {
             File fileMetadata = new File();
@@ -128,14 +129,16 @@ public class GoogleDriveImpl extends FileManager{
             std_out(file);
             return true;
         } catch (Exception e) {
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
     @Override
-    public boolean delete(String path) throws MyException{
+    public boolean delete(String path) {
         path = getFullUnixPath(path);
         if(!isValidPath(path)){
+            System.out.println("Invalid path: " + path);
             return false;
         }
         try {
@@ -153,13 +156,14 @@ public class GoogleDriveImpl extends FileManager{
             configuration.getFile_n().remove(fileID);
 
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return false;
         }
         return true;
     }
 
     @Override
-    public boolean move(String oldPath, String newPath) throws MyException{
+    public boolean move(String oldPath, String newPath) {
         oldPath = getFullUnixPath(oldPath);
         newPath = getFullUnixPath(newPath);
 
@@ -172,7 +176,8 @@ public class GoogleDriveImpl extends FileManager{
 
         File destination = getFilebyPath(newPath);
         if(!destination.getMimeType().equals("application/vnd.google-apps.folder")){
-            throw new MyException("Invalid destination file path: " + newPath);
+            System.out.println("Invalid destination file path: " + newPath);
+            return false;
         }
         File sourceFile = getFilebyPath(oldPath);
         String oldParentID = sourceFile.getParents().get(0);
@@ -180,6 +185,7 @@ public class GoogleDriveImpl extends FileManager{
         String ext = getExtension(oldPath);
 
         if(!checkConfig(newPath, ext, sourceFile.getSize())){
+            System.out.println("Can`t move " + sourceFile.getName() + ", please check config!");
             return false;
         }
 
@@ -190,14 +196,15 @@ public class GoogleDriveImpl extends FileManager{
                     .execute();
 
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return false;
         }
 
         return true;
     }
 
     @Override
-    public boolean download(String item, String destination) throws MyException {
+    public boolean download(String item, String destination) {
         item = getFullUnixPath(item);
         if(!isValidPath(item))
             return false;
@@ -207,7 +214,7 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     @Override
-    public boolean upload(String item, String destination) throws MyException {
+    public boolean upload(String item, String destination) {
         try {
             java.io.File javaFile = new java.io.File(item);
             destination = getFullUnixPath(destination);
@@ -219,25 +226,29 @@ public class GoogleDriveImpl extends FileManager{
             String ext = getExtension(javaFile.getName());
             String type = map.get(ext);
             if(!isNameValid(parent.getId(), javaFile.getName(), type)){
+                System.out.println("Name is not valid!");
                 return false;
             }
 
 
             long size = Files.size(Paths.get(javaFile.getPath()));
             if(!checkConfig(destination, ext, size)){
+                System.out.println("Please check config!File tried to upload: " + javaFile.getPath());
                 return false;
             }
 
             uploadFile(parent.getId(), javaFile);
             currSize += size;
+
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return false;
         }
         return true;
     }
 
     @Override
-    public boolean rename(String path, String newName) throws MyException {
+    public boolean rename(String path, String newName) {
         path = getFullUnixPath(path);
         if(!isValidPath(path))
             return false;
@@ -251,10 +262,9 @@ public class GoogleDriveImpl extends FileManager{
             newFile.setName(newName);
             service.files().update(file.getId(), newFile)
                     .execute();
-            System.out.println(file.getName());
-
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return false;
         }
 
         return true;
@@ -262,7 +272,7 @@ public class GoogleDriveImpl extends FileManager{
 
     @Override
 //    TODO dodati na zatvaranju
-    public void saveConfig() throws MyException {
+    public void saveConfig() {
         try(FileWriter writer = new FileWriter("src/main/resources/config.json")) {
             Gson gson = new Gson();
             gson.toJson(configuration, writer);
@@ -272,12 +282,12 @@ public class GoogleDriveImpl extends FileManager{
             uploadFile(rootID, javaFile);
             javaFile.delete();
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
         }
     }
 
     @Override
-    public List<MyFile> searchDir(String path) throws MyException{
+    public List<MyFile> searchDir(String path) {
         path = getFullUnixPath(path);
         List<MyFile> myFiles = new ArrayList<>();
         if(!isValidPath(path))
@@ -292,14 +302,16 @@ public class GoogleDriveImpl extends FileManager{
 
             convertToMyFiles(myFiles, gList);
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            System.out.println("Error during searchDir!");
+            return myFiles;
         }
+
 
         return myFiles;
     }
 
     @Override
-    public List<MyFile> searchSubDir(String path) throws MyException{
+    public List<MyFile> searchSubDir(String path) {
 
             List<MyFile> myFiles = new ArrayList<>();
         try {
@@ -313,13 +325,13 @@ public class GoogleDriveImpl extends FileManager{
             for(File dir : folders)
                 myFiles.addAll(getRecursiveFiles(dir,""));
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            return myFiles;
         }
         return myFiles;
     }
 
     @Override
-    public boolean existName(String path, String name) throws MyException {
+    public boolean existName(String path, String name) {
         path = getFullUnixPath(path);
         if(!isValidPath(path))
             return false;
@@ -330,14 +342,16 @@ public class GoogleDriveImpl extends FileManager{
                 .setQ("name = " + "'" + name + "' and '" + folder.getId() + "' in parents")
                 .execute().getFiles().isEmpty();
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
         }
+        return false;
     }
 
-    @Override
-    public List<MyFile> filterByExt(String path, String ext) throws MyException{
+    @Override   // if error occurs, returns empty list
+    public List<MyFile> filterByExt(String path, String ext) {
         path = getFullUnixPath(path);
         if(!isValidPath(path)){
+            System.out.println();
             return new ArrayList<MyFile>();
         }
         String parentID = getFilebyPath(path).getId();
@@ -348,18 +362,18 @@ public class GoogleDriveImpl extends FileManager{
 
 
     @Override
-    public List<MyFile> searchSubstring(String substr)throws MyException{
+    public List<MyFile> searchSubstring(String substr) {
         return internalsearchSubstring(rootPath, substr);
     }
 
 
     @Override
-    public List<String> getParentPath(String name) throws MyException {
+    public List<String> getParentPath(String name) {
         return internalsearchParents(rootPath, name);
     }
 
     @Override
-    public List<MyFile> filterByPeriod(String path, LocalDateTime startDate, LocalDateTime endDate, boolean modified) throws MyException{
+    public List<MyFile> filterByPeriod(String path, LocalDateTime startDate, LocalDateTime endDate, boolean modified) {
         List<MyFile> myFiles = new ArrayList<>();
         path = getFullUnixPath(path);
         if(!isValidPath(path))
@@ -388,7 +402,7 @@ public class GoogleDriveImpl extends FileManager{
             }
 
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            return myFiles;
         }
 
         return myFiles;
@@ -400,7 +414,7 @@ public class GoogleDriveImpl extends FileManager{
 
     }
 
-    boolean isValidPath(String path) throws MyException{
+    boolean isValidPath(String path){
         if (path == null || path.equals(""))
             return true;
         try {
@@ -418,11 +432,12 @@ public class GoogleDriveImpl extends FileManager{
             return true;
         }catch (Exception e){
             e.printStackTrace();
-            throw new MyException("Invalid path: " + path + "\n" + e.getMessage());
+            System.out.println("Invalid path: " + path);
+            return false;
         }
     }
 
-    private List<MyFile> getRecursiveFiles(File dir, String condition)throws MyException{
+    private List<MyFile> getRecursiveFiles(File dir, String condition){
         List<MyFile> myFiles = new ArrayList<>();
         try {
             myFiles.addAll(privateSearchDir(dir.getId(), condition));
@@ -432,7 +447,7 @@ public class GoogleDriveImpl extends FileManager{
             for(File folder : folders)
                 myFiles.addAll(getRecursiveFiles(folder, condition));
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
         }
         return myFiles;
     }
@@ -455,7 +470,7 @@ public class GoogleDriveImpl extends FileManager{
         return myFiles;
     }
 
-    private void convertToMyFiles(List<MyFile> myFiles, List<File> gList) throws MyException{
+    private void convertToMyFiles(List<MyFile> myFiles, List<File> gList) {
         for(File gFile : gList){
 
             LocalDateTime modified = convertToLocalDateTime(gFile.getModifiedTime());
@@ -521,16 +536,17 @@ public class GoogleDriveImpl extends FileManager{
         }
     }
 
-    private LocalDateTime convertToLocalDateTime(DateTime dateTime)throws MyException{
+    private LocalDateTime convertToLocalDateTime(DateTime dateTime){
         try {
             DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
             return LocalDateTime.parse(dateTime.toStringRfc3339(), f);
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return null;
         }
     }
 
-    private boolean isNameValid(String googleFolderIdParent, String name, String type) throws MyException{
+    private boolean isNameValid(String googleFolderIdParent, String name, String type){
 
         String mimeType = " and mimeType = '";
         if(type == null)
@@ -555,7 +571,9 @@ public class GoogleDriveImpl extends FileManager{
             } while (pageToken != null);
             return list.isEmpty();
         }catch (Exception e){
-            throw new MyException(e.getMessage() + '\n' + "Name: " + name + " is not valid!");
+            e.printStackTrace();
+            System.out.println("Name: " + name + " is not valid!");
+            return false;
         }
     }
 
@@ -578,15 +596,17 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     //returns File if successful or null if not
-    private File rootMaking(String path, String name) throws MyException {
+    private File rootMaking(String path, String name){
         String realFolderId = null;
         if(isValidPath(path)){
             realFolderId = getFilebyPath(path).getId();
             if(!isNameValid(realFolderId, name, "application/vnd.google-apps.folder")){
-                throw new MyException("Name: " + name + " is not valid!");
+                System.out.println("Name: " + name + " is not valid!");
+                return null;
             }
         }else{
-            throw new MyException("Path: " + path + " is not valid!");
+            System.out.println("Path: " + path + " is not valid!");
+            return null;
         }
         try {
             File fileMetadata = new File();
@@ -600,7 +620,8 @@ public class GoogleDriveImpl extends FileManager{
             System.out.println("-----------------");
             return file;
         } catch (Exception e) {
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -622,17 +643,18 @@ public class GoogleDriveImpl extends FileManager{
         return name.substring(name.lastIndexOf(".") + 1);
     }
 
-    private File getFolderByID(String id) throws MyException{
+    private File getFolderByID(String id){
         try {
         return service.files().get(id)
                 .setFields("id, name, mimeType, parents, createdTime, size")
                 .execute();
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return null;
         }
     }
 
-    private String getDFSpath(String fileID)throws MyException{
+    private String getDFSpath(String fileID){
         String currID = fileID;
         File rootFile = getFilebyPath(rootPath);
         String rootID = rootFile.getId();
@@ -675,7 +697,7 @@ public class GoogleDriveImpl extends FileManager{
         }
     }
 
-    private List<MyFile> internalsearchSubstring(String path, String substr)throws MyException{
+    private List<MyFile> internalsearchSubstring(String path, String substr){
         List<MyFile> myFiles = new ArrayList<>();
         try {
             File rootFile = getFilebyPath(path);
@@ -698,12 +720,13 @@ public class GoogleDriveImpl extends FileManager{
                 myFiles.addAll(getRecursiveFiles(dir, condition));
 
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return myFiles;
         }
         return myFiles;
     }
 
-    private List<String> internalsearchParents(String path, String name)throws MyException{
+    private List<String> internalsearchParents(String path, String name){
         List<String> parents = new ArrayList<>();
         try {
             File rootFile = getFilebyPath(path);
@@ -723,7 +746,8 @@ public class GoogleDriveImpl extends FileManager{
             for(File dir : folders)
                 parents.addAll(internalsearchParents(getDFSpath(dir.getId()),name));
         }catch (Exception e){
-            throw new MyException(e.getMessage());
+            e.printStackTrace();
+            return parents;
         }
         return parents;
     }
