@@ -26,6 +26,10 @@ public class GoogleDriveImpl extends FileManager{
     private static final String TYPE_MAP = "src/main/resources/typeMap.json";
     private static Map<String, String> map = new HashMap<>();
 
+    static {
+        RepoManager.registerManager(new GoogleDriveImpl());
+    }
+
     public GoogleDriveImpl(){
         this.rootPath = "";
         try {
