@@ -51,7 +51,7 @@ public class GoogleDriveImpl extends FileManager{
 
         this.rootPath = rootPath;
         this.configuration = configuration;
-        File file = getFilebyPath(rootPath);
+//        File file = getFilebyPath(rootPath);
 //        saveConfig(rootPath); <- odraditi na kraju
         return true;
     }
@@ -425,7 +425,7 @@ public class GoogleDriveImpl extends FileManager{
             }
             return true;
         }catch (Exception e){
-            e.printStackTrace();
+//            e.printStackTrace();
             System.out.println("Invalid path: " + path);
             return false;
         }
@@ -678,7 +678,7 @@ public class GoogleDriveImpl extends FileManager{
         if(path.length() >= 1 && path.charAt(0) == '/')
             path = path.substring(1);
 
-        if(path.equals("") || path.equals(rootPath))
+        if(path.equals("") || path.equals(rootPath) || path.equals("."))
             return rootPath;
         else{
             String pth = rootPath+"/"+path;
