@@ -409,7 +409,7 @@ public class GoogleDriveImpl extends FileManager{
     }
 
     boolean isValidPath(String path){
-        if (path == null || path.equals(""))
+        if (path == null || path.equals("") || path.equals("."))
             return true;
         try {
             String[] folders = path.split("/");
@@ -593,6 +593,8 @@ public class GoogleDriveImpl extends FileManager{
     private File rootMaking(String path, String name){
         String realFolderId = null;
         if(isValidPath(path)){
+            if(path.equals("."))
+                path = "root";
             realFolderId = getFilebyPath(path).getId();
             if(!isNameValid(realFolderId, name, "application/vnd.google-apps.folder")){
                 System.out.println("Name: " + name + " is not valid!");
