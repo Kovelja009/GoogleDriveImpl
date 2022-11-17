@@ -51,8 +51,7 @@ public class GoogleDriveImpl extends FileManager{
 
         this.rootPath = rootPath;
         this.configuration = configuration;
-//        File file = getFilebyPath(rootPath);
-//        saveConfig(rootPath); <- odraditi na kraju
+
         return true;
     }
 
