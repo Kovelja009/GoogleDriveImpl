@@ -674,6 +674,8 @@ public class GoogleDriveImpl extends FileManager{
 
         path = path.replace("\\", "/");
         path = path.replace("//", "/");
+        if(path.trim().equals("."))
+            return rootPath;
         if(path.length() >= 1 && path.charAt(path.length()-1) == '/')
             path = path.substring(0, path.length()-1);
         if(path.length() >= 1 && path.charAt(0) == '/')
